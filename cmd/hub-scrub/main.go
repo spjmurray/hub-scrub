@@ -206,11 +206,13 @@ func main() {
 		if time.Since(tag.LastUpdated.Time) > threshold {
 			fmt.Println("deleting tag", tag.Name, "age", time.Since(tag.LastUpdated.Time))
 
-			req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("https://hub.docker.com/v2/repositories/%s/%s/tags/%s", username, image, tag.Name), nil)
+			req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("https://hub.docker.com/v2/repositories/%s/%s/tags/%s/", username, image, tag.Name), nil)
 			if err != nil {
 				fmt.Println("unable to create delete request:", err)
 				os.Exit(1)
 			}
+
+			req.Header.Add("Authorization", fmt.Sprintf("JWT %s", authenticationResponse.Token))
 
 			rsp, err := client.Do(req)
 			if err != nil {
@@ -220,7 +222,7 @@ func main() {
 
 			rsp.Body.Close()
 
-			if rsp.StatusCode != http.StatusOK {
+			if rsp.StatusCode != http.StatusNoContent {
 				fmt.Println("unexpected status code", rsp.StatusCode)
 			}
 		}
