@@ -22,6 +22,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -152,6 +153,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	organization := username
+	if parts := strings.Split(image, "/"); len(parts) != 1 {
+		if len(parts) != 2 {
+			fmt.Println("malformed image", image)
+			os.Exit(1)
+		}
+
+		organization = parts[0]
+		image = parts[1]
+	}
+
 	client := http.Client{}
 
 	// Authenticate and get an API token.
@@ -196,7 +208,7 @@ func main() {
 
 	// Get a list of tags for the requested image.
 	tags := TagList{}
-	if err := List(authenticationResponse.Token, fmt.Sprintf("https://hub.docker.com/v2/repositories/%s/%s/tags", username, image), &tags); err != nil {
+	if err := List(authenticationResponse.Token, fmt.Sprintf("https://hub.docker.com/v2/repositories/%s/%s/tags", organization, image), &tags); err != nil {
 		fmt.Println("unable to list tags:", err)
 		os.Exit(0)
 	}
@@ -206,7 +218,7 @@ func main() {
 		if time.Since(tag.LastUpdated.Time) > threshold {
 			fmt.Println("deleting tag", tag.Name, "age", time.Since(tag.LastUpdated.Time))
 
-			req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("https://hub.docker.com/v2/repositories/%s/%s/tags/%s/", username, image, tag.Name), nil)
+			req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("https://hub.docker.com/v2/repositories/%s/%s/tags/%s/", organization, image, tag.Name), nil)
 			if err != nil {
 				fmt.Println("unable to create delete request:", err)
 				os.Exit(1)
